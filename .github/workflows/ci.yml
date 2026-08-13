@@ -1,0 +1,24 @@
+name: Test e Formattazione Winery
+
+on: [push, pull_request]  # trigger, fa partire autom. il processo in 2 casi precisi
+
+jobs:  # lavori da fare
+  test:
+    runs-on: ubuntu-latest # server virtuale con cui accede GitHub
+    steps:  # passaggi 
+    - name: Checkout del codice
+      uses: actions/checkout@v3
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Installa le dipendenze
+      run: pip install -r requirements.txt
+      
+    - name: Controlla formattazione (Black)
+      run: black --check src/ tests/
+      
+    - name: Esegui i Test (Pytest)
+      run: pytest tests/
