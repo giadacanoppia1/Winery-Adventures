@@ -31,9 +31,9 @@ def test_winery_pipeline_end_to_end(
     )
 
     # 3) Check wandb logs
-    assert any(
-        "stress_score" in d for d in monkey_wandb_run.logs
-    ), "No stress_score logged to wandb"
+    assert any("stress_score" in d for d in monkey_wandb_run.logs), (
+        "No stress_score logged to wandb"
+    )
 
     # 4) Read final CSV
     df_result = pl.read_csv(output_csv)

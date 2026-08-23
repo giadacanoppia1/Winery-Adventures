@@ -21,9 +21,9 @@ def test_pairwise_stress_small():
 
 
 def test_is_function_numba():
-    assert isinstance(
-        pairwise_stress_function, _dispatcher.Dispatcher
-    ), "Numba JIT compilation failed"
+    assert isinstance(pairwise_stress_function, _dispatcher.Dispatcher), (
+        "Numba JIT compilation failed"
+    )
 
 
 def test_hpc_computations_class():

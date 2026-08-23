@@ -16,9 +16,9 @@ def test_pipeline_chain(monkey_wandb_run, sensors_df):
     assert "stress_score" in df_out.columns, "Missing HPC column"
 
     assert wandb.run == monkey_wandb_run, "wandb.init() should be called"
-    assert any(
-        "stress_score" in d for d in monkey_wandb_run.logs
-    ), "No 'stress_score' logs found"
+    assert any("stress_score" in d for d in monkey_wandb_run.logs), (
+        "No 'stress_score' logs found"
+    )
 
 
 def test_analyzers_run(sensors_df):
@@ -49,6 +49,6 @@ def test_log_wandb(monkey_wandb_run):
     pipeline.log_to_wandb(pl.DataFrame({"tank_id": [1, 2], "stress_score": [0.5, 0.6]}))
 
     assert wandb.run == monkey_wandb_run, "wandb.init() should be called"
-    assert any(
-        "stress_score" in d for d in monkey_wandb_run.logs
-    ), "No 'stress_score' logs found"
+    assert any("stress_score" in d for d in monkey_wandb_run.logs), (
+        "No 'stress_score' logs found"
+    )

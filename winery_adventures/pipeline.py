@@ -1,8 +1,8 @@
 """gestore principale dell'elaborazione dati della cantina.
 
-questa classe prende una lista di analizzatori e li esegue uno dopo l'altro. 
-il risultato del primo diventa i dati di partenza del secondo, e così via. 
-se in futuro vorrai aggiungere un nuovo filtro, ti basterà inserirlo nella 
+questa classe prende una lista di analizzatori e li esegue uno dopo l'altro.
+il risultato del primo diventa i dati di partenza del secondo, e così via.
+se in futuro vorrai aggiungere un nuovo filtro, ti basterà inserirlo nella
 lista senza dover toccare questo codice.
 """
 
@@ -101,9 +101,9 @@ class WineryPipeline:
     def log_to_wandb(self, df: pl.DataFrame) -> None:
         """invia a weights & biases lo stress calcolato per ogni cisterna.
 
-        inviamo una sola riga per cisterna (non una per ogni singola lettura), 
-        così non intasiamo i grafici. se la connessione a w&b fallisce, 
-        il programma ignora l'errore e va avanti, perché l'analisi è più 
+        inviamo una sola riga per cisterna (non una per ogni singola lettura),
+        così non intasiamo i grafici. se la connessione a w&b fallisce,
+        il programma ignora l'errore e va avanti, perché l'analisi è più
         importante del salvataggio del grafico.
 
         args:

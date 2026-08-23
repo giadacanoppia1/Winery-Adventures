@@ -144,7 +144,13 @@ def generate_tank_info(num_tanks=20, variety_list=None):
     for tank_id in range(1, num_tanks + 1):
         grape_variety = random.sample(variety_list, k=3)
         capacity = random.randint(1000, 1800)
-        rows.append({"tank_id": tank_id, "grape_variety": ",".join(grape_variety), "capacity_liters": capacity})
+        rows.append(
+            {
+                "tank_id": tank_id,
+                "grape_variety": ",".join(grape_variety),
+                "capacity_liters": capacity,
+            }
+        )
     return rows
 
 
@@ -185,7 +191,8 @@ def generate_sensor_data(num_tanks=5, num_readings=20, start_date="2025-01-01"):
         }
 
     rows = joblib.Parallel(n_jobs=-1)(
-        joblib.delayed(generate_sensor_row)() for _ in tqdm.tqdm(range(num_readings), desc="Generating sensor data")
+        joblib.delayed(generate_sensor_row)()
+        for _ in tqdm.tqdm(range(num_readings), desc="Generating sensor data")
     )
 
     return rows
@@ -203,22 +210,26 @@ def main():
 
     # Create 'tank_info.tsv'
     tank_info = generate_tank_info(num_tanks=NUM_TANKS, variety_list=variety_pool)
-    sensors = generate_sensor_data(num_tanks=NUM_TANKS, num_readings=NUM_READINGS, start_date="2025-01-01")
+    sensors = generate_sensor_data(
+        num_tanks=NUM_TANKS, num_readings=NUM_READINGS, start_date="2025-01-01"
+    )
 
     output_path = Path("data")
     output_path.mkdir(exist_ok=True)
 
     # Write tank_info.tsv
-    pl.DataFrame(tank_info, schema=["tank_id", "grape_variety", "capacity_liters"]).write_csv(
-        output_path / "full_tank_info.tsv", separator="\t"
-    )
+    pl.DataFrame(
+        tank_info, schema=["tank_id", "grape_variety", "capacity_liters"]
+    ).write_csv(output_path / "full_tank_info.tsv", separator="\t")
 
     # Write sensors.tsv
-    pl.DataFrame(sensors, schema=["tank_id", "time", "pH", "temp", "quantity_liters"]).write_csv(
-        output_path / "full_sensors.tsv", separator="\t"
-    )
+    pl.DataFrame(
+        sensors, schema=["tank_id", "time", "pH", "temp", "quantity_liters"]
+    ).write_csv(output_path / "full_sensors.tsv", separator="\t")
 
-    print(f"Generated 'tank_info.tsv' (with {len(tank_info)} rows) and 'sensors.tsv' (with {len(sensors)} rows).")
+    print(
+        f"Generated 'tank_info.tsv' (with {len(tank_info)} rows) and 'sensors.tsv' (with {len(sensors)} rows)."
+    )
 
 
 if __name__ == "__main__":

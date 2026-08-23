@@ -1,10 +1,10 @@
 """base comune per tutti i blocchi di analisi della pipeline.
 
-qui definiamo `basewineryanalyzer`, una classe astratta che serve 
-come stampo per ogni fase dell'analisi. 
+qui definiamo `basewineryanalyzer`, una classe astratta che serve
+come stampo per ogni fase dell'analisi.
 
-la regola per usarla è una: ogni blocco prende un dataframa polars e 
-ne restituisce uno nuovo. questa struttura standard ci permette di collegare 
+la regola per usarla è una: ogni blocco prende un dataframa polars e
+ne restituisce uno nuovo. questa struttura standard ci permette di collegare
 i passaggi uno dopo l'altro senza errori.
 """
 
@@ -20,7 +20,7 @@ __all__ = ["BaseWineryAnalyzer"]
 class BaseWineryAnalyzer(ABC):
     """interfaccia per ogni singolo passaggio della pipeline.
 
-    ogni classe figlia rappresenta una singola operazione: riceve i dati 
+    ogni classe figlia rappresenta una singola operazione: riceve i dati
     dal passaggio prims, li elabora e li passa al prossimo.
 
     è obbligatorio creare il metodo `analyze_data` in ogni classe figlia,
@@ -43,7 +43,7 @@ class BaseWineryAnalyzer(ABC):
             df: il dataframe polars in arrivo dal passaggio precedente.
 
         returns:
-            un nuovo dataframe polars con i dati elaborati. 
+            un nuovo dataframe polars con i dati elaborati.
             importante: non modificare i dati originali, polars lavora
             creando oggetti nuovi (è immutabile).
 
