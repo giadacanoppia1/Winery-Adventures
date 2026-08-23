@@ -25,11 +25,11 @@ logger = logging.getLogger(__name__)
 class WineryPipeline:
     """esegue i vari passaggi dell'analisi e salva i risultati su w&b.
 
-    args:
+    Args:
         analyzers: la lista dei passaggi da eseguire sui dati.
         project_name: nome del progetto weights & biases per le metriche.
 
-    example:
+    Example:
         >>> from winery_adventures.transformations import WineryTransformer
         >>> pipeline = WineryPipeline([WineryTransformer()])
         >>> isinstance(pipeline.analyzers, list)
@@ -47,7 +47,7 @@ class WineryPipeline:
         analyzers: Sequence[BaseWineryAnalyzer],
         project_name: str | None = None,
     ) -> None:
-        """salva la lista delle operazioni da fare e il progetto w&b."""
+        """Salva la lista delle operazioni da fare e il progetto w&b."""
         self.analyzers = list(analyzers)
         self.project_name = project_name or self.DEFAULT_PROJECT_NAME
 
@@ -56,16 +56,16 @@ class WineryPipeline:
     # ------------------------------------------------------------------
     @staticmethod
     def load_data(path: str | Path, separator: str = "\t") -> pl.DataFrame:
-        """legge un file di testo e lo trasforma in un dataframe polars.
+        """Legge un file di testo e lo trasforma in un dataframe polars.
 
-        args:
+        Args:
             path: dove si trova il file.
             separator: il carattere che divide le colonne.
 
-        returns:
+        Returns:
             i dati caricati e pronti all'uso.
 
-        raises:
+        Raises:
             filenotfounderror: se il file non esiste.
         """
         file_path = Path(path)
@@ -80,13 +80,13 @@ class WineryPipeline:
     # esecuzione
     # ------------------------------------------------------------------
     def run(self, df: pl.DataFrame, log_to_wandb: bool = False) -> pl.DataFrame:
-        """esegue tutti i passaggi dell'analisi, uno per uno.
+        """Esegue tutti i passaggi dell'analisi, uno per uno.
 
-        args:
+        Args:
             df: i dati grezzi iniziali (es. i sensori).
             log_to_wandb: se vero, alla fine manda le metriche a w&b.
 
-        returns:
+        Returns:
             i dati finali elaborati.
         """
         for analyzer in self.analyzers:
@@ -99,14 +99,14 @@ class WineryPipeline:
         return df
 
     def log_to_wandb(self, df: pl.DataFrame) -> None:
-        """invia a weights & biases lo stress calcolato per ogni cisterna.
+        """Invia a weights & biases lo stress calcolato per ogni cisterna.
 
         inviamo una sola riga per cisterna (non una per ogni singola lettura),
         così non intasiamo i grafici. se la connessione a w&b fallisce,
         il programma ignora l'errore e va avanti, perché l'analisi è più
         importante del salvataggio del grafico.
 
-        args:
+        Args:
             df: i dati finali che contengono la colonna dello stress.
         """
         if self.METRIC_COLUMN not in df.columns:

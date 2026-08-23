@@ -1,0 +1,24 @@
+# iook eseguiti automaticamente prima di ogni commit.
+# Installazione (una volta per clone):  pre-commit install
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      # formattazione automatica del codice.
+      - id: ruff-format
+      # lint con correzione automatica di cio' che e' sicuro correggere.
+      - id: ruff
+        args: [--fix]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      # impedisce di committare per sbaglio file di grandi dimensioni
+      # (per esempio i dataset generati da data_generator.py).
+      - id: check-added-large-files
+        args: [--maxkb=2000]
+      - id: check-merge-conflict

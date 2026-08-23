@@ -1,0 +1,7 @@
+# dipendenze di runtime.
+
+polars>=1.0      # manipolazione dei DataFrame ad alte prestazioni (motore Rust)
+numpy>=1.26      # array numerici passati ai kernel di calcolo
+numba>=0.59      # compilazione JIT della formula di stress in codice macchina
+joblib>=1.3      # parallelizzazione del calcolo sulle cisterne
+wandb>=0.16      # logging e visualizzazione delle metriche
