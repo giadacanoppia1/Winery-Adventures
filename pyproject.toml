@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "winery-adventures"
 version = "1.0.0"
-description = "pipeline di analisi dei dati dei sensori di una cantina di fermentazione."
+description = "Pipeline di analisi dei dati dei sensori di una cantina di fermentazione."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -37,8 +37,7 @@ winery-adventures = "winery_adventures.main:main"
 include = ["winery_adventures*"]
 
 # ----------------------------------------------------------------------
-# formattazione e controllo del codice: ruff fa il lavoro di black, 
-# flake8 e isort tutti insiema in un solo strumento velocissimo.
+# Formattazione e linting: ruff sostituisce black + flake8 + isort
 # ----------------------------------------------------------------------
 [tool.ruff]
 line-length = 90
@@ -46,46 +45,42 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle: trova errori di stile standard (le regole pep 8)
-    "W",   # pycodestyle: avvisi e piccoli suggerimenti sul codice
-    "F",   # pyflakes: scova variabili create e pacchetti importati ma mai usati
-    "I",   # isort: mette in ordine alfabetico e raggruppa li import all'inizio
-    "N",   # pep8-naming: controlla che i nomi di funzioni e variabili siano corretti
-    "D",   # pydocstyle: verifica che le spiegazioni delle funzioni (docstring) ci siano
-    "UP",  # pyupgrade: suggerisce come usare il python più moderno
-    "B",   # flake8-bugbear: cerca errori strani e possibili bug nascosti
-    "SIM", # flake8-simplify: ti aiuta a scrivere lo stesso codice in modo più semplice
+    "E",   # pycodestyle: errori PEP 8
+    "W",   # pycodestyle: warning
+    "F",   # pyflakes: variabili e import inutilizzati
+    "I",   # isort: ordinamento degli import
+    "N",   # pep8-naming: convenzioni sui nomi
+    "D",   # pydocstyle: presenza e forma delle docstring
+    "UP",  # pyupgrade: sintassi moderna
+    "B",   # flake8-bugbear: bug latenti
+    "SIM", # flake8-simplify
 ]
 ignore = [
-    "D203",  # in conflitto con la regola d211 (ne possiamo accendere solo una)
-    "D213",  # in conflitto con la regola d212
+    "D203",  # incompatibile con D211 (una sola delle due va scelta)
+    "D213",  # incompatibile con D212
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# nei test diamo nomi molto lunghi ed espliciti alle funzioni per spiegare 
-# cosa stiamo testando. per questo motivo le docstring non sono obbligatorie qui.
+# I test documentano se stessi con nomi espliciti: docstring non obbligatorie.
 "tests/*" = ["D100", "D103", "D205", "D212", "D415", "N806", "I001"]
-
-# teniamo i nomi delle variabili esattamente come richiesti dalla specifica 
-# del progetto per evitare confusione (ad esempio permettiamo "pH_vals").
+# Nomi di variabili conformi alla specifica del progetto (pH_vals, ...).
 "winery_adventures/computations.py" = ["N803"]
-
-# file esterno fornito per il progetto: non lo abbiamo scritto noi e non lo 
-# modifichiamo. disattiviamo tutti i controlli (ALL) su questo fila, 
-# altrimenti se chi ce l'ha dato lo aggiorna, faremmo fatica a sostituirlo.
+# File forniti dal committente: non li modifichiamo, quindi non li valutiamo
+# con le nostre regole di stile. Ogni modifica renderebbe piu' difficile
+# ricevere aggiornamenti della consegna.
 "data_generator.py" = ["ALL"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 # ----------------------------------------------------------------------
-# configurazione dei test
+# Test
 # ----------------------------------------------------------------------
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
 markers = [
-    "slow: test che ci mettono tanto tempo, di solito quelli che provano tutto il sistema (end-to-end).",
+    "slow: test più lenti, tipicamente di accettazione end-to-end.",
 ]
 
 [tool.coverage.run]

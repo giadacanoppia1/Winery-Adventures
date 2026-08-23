@@ -170,17 +170,12 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# Dataset di grandi dimensioni: si rigenerano con `python data_generator.py`
 data/full_*.tsv
-
-# Output della pipeline e cache di Numba
 results/
-__pycache__/
+wandb/
+docs/_build/
 *.nbi
 *.nbc
-
-# Run locali di Weights & Biases
-wandb/
-
-# Documentazione generata
-docs/_build/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
