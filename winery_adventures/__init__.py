@@ -32,4 +32,3 @@ __all__ = [
     "pairwise_stress_function",
     "__version__",
 ]
-

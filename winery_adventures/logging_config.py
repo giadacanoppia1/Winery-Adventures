@@ -19,14 +19,14 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
 def setup_logging(level: int | str = logging.INFO) -> None:
-    """prepara il sistema per stampare i messaggi nel terminale.
+    """Prepara il sistema per stampare i messaggi nel terminale.
 
-    args:
+    Args:
         level: l'importanza minima dei messaggi da mostrare (ad esempio
             "info" per le cose normali, "debug" per tutti i dettagli).
 
-    note:
-        usando force=true, se chiami questa funzione due volte per sbaglio 
+    Note:
+        usando force=true, se chiami questa funzione due volte per sbaglio
         non si creano doppioni nei messaggi, ma la configurazione si aggiorna.
     """
     logging.basicConfig(
