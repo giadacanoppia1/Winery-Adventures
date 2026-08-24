@@ -1,0 +1,107 @@
+@startuml class_diagram
+' Diagramma delle classi del sistema Winery Adventures.
+' Render:  plantuml docs/uml/class_diagram.puml
+
+title Winery Adventures — Diagramma delle Classi
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide empty members
+
+package "winery_adventures" {
+
+  abstract class BaseWineryAnalyzer <<abstract>> {
+    + {abstract} analyze_data(df: DataFrame): DataFrame
+    + __repr__(): str
+  }
+
+  class WineryTransformer {
+    + {static} STANDARD_TEMPERATURE: float = 26.0
+    + {static} REFERENCE_VOLUME_LITERS: float = 1000.0
+    - tank_info_df: DataFrame | None
+    --
+    + analyze_data(df: DataFrame): DataFrame
+    + add_avg_ph_per_tank(df: DataFrame): DataFrame
+    + add_num_readings_per_tank(df: DataFrame): DataFrame
+    + add_num_readings_per_grape_variety(df: DataFrame): DataFrame
+    + add_temperature_deviation(df: DataFrame): DataFrame
+    - {static} _normalize_tank_info(tank_info: DataFrame): DataFrame
+    - {static} _require_columns(df, columns, caller): void
+  }
+
+  class WineryHPCComputations {
+    + {static} REQUIRED_COLUMNS: tuple
+    + {static} OUTPUT_COLUMN: str = "stress_score"
+    - n_jobs: int
+    - use_fast_algorithm: bool
+    - pairwise_threshold: int
+    --
+    + analyze_data(df: DataFrame): DataFrame
+    - _execute(tasks: Sequence): list<float>
+  }
+
+  class WineryPipeline {
+    + {static} DEFAULT_PROJECT_NAME: str
+    + {static} METRIC_COLUMN: str = "stress_score"
+    - analyzers: list<BaseWineryAnalyzer>
+    - project_name: str
+    --
+    + {static} load_data(path, separator): DataFrame
+    + run(df: DataFrame, log_to_wandb: bool): DataFrame
+    + log_to_wandb(df: DataFrame): void
+  }
+
+  class "computations (kernel numba)" as Kernels <<module>> {
+    + pairwise_stress_python(pH, temp, quantity): float
+    + pairwise_stress_function(pH, temp, quantity): float
+    + pairwise_stress_function_parallel(pH, temp, quantity): float
+    + fast_stress_function(pH, temp, quantity): float
+    - _sum_abs_differences(values): ndarray
+    - _compute_tank_stress(...): float
+  }
+
+  class "main" as Main <<module>> {
+    + run_full_pipeline(input_csv, tank_info_csv, output_csv, ...): DataFrame
+    + main(argv): int
+  }
+}
+
+package "Librerie esterne" <<Cloud>> {
+  class "polars.DataFrame" as PolarsDF <<external>>
+  class "joblib.Parallel" as Joblib <<external>>
+  class "wandb" as Wandb <<external>>
+}
+
+BaseWineryAnalyzer <|-- WineryTransformer
+BaseWineryAnalyzer <|-- WineryHPCComputations
+
+WineryPipeline o--> "0..*" BaseWineryAnalyzer : analyzers
+WineryPipeline ..> PolarsDF : elabora
+WineryPipeline ..> Wandb : logga metriche
+
+WineryHPCComputations ..> Kernels : invoca
+WineryHPCComputations ..> Joblib : parallelizza per cisterna
+WineryTransformer ..> PolarsDF : window functions
+
+Main ..> WineryPipeline : compone ed esegue
+Main ..> WineryTransformer : istanzia
+Main ..> WineryHPCComputations : istanzia
+
+note right of BaseWineryAnalyzer
+  Contratto unico della pipeline.
+  Grazie ad esso WineryPipeline non
+  dipende dalle classi concrete
+  (dependency inversion): aggiungere
+  uno stadio non richiede di
+  modificare l'orchestratore.
+end note
+
+note bottom of Kernels
+  Tre implementazioni equivalenti
+  della stessa formula.
+  La versione O(n log n) deriva da
+  una fattorizzazione algebrica
+  della doppia sommatoria.
+end note
+
+@enduml
