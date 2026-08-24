@@ -1,0 +1,94 @@
+@startuml sequence_diagram
+' Flusso di esecuzione della pipeline di elaborazione dati.
+' Render:  plantuml docs/uml/sequence_diagram.puml
+
+title Winery Adventures — Diagramma di Sequenza (esecuzione della pipeline)
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+actor "Enologo / Data Engineer" as User
+participant "main\nrun_full_pipeline()" as Main
+participant "WineryPipeline" as Pipeline
+participant "WineryTransformer" as Transformer
+participant "WineryHPCComputations" as HPC
+participant "joblib.Parallel" as Joblib
+participant "kernel Numba\nstress_function" as Kernel
+participant "wandb" as Wandb
+database "File system\nTSV / CSV" as FS
+
+User -> Main : run_full_pipeline(input, tank_info, output)
+activate Main
+
+Main -> Pipeline : load_data(sensors.tsv)
+activate Pipeline
+Pipeline -> FS : read_csv(separator="\\t")
+FS --> Pipeline : DataFrame letture
+Pipeline --> Main : sensors_df
+deactivate Pipeline
+
+Main -> Pipeline : load_data(tank_info.tsv)
+activate Pipeline
+Pipeline -> FS : read_csv(separator="\\t")
+FS --> Pipeline : DataFrame anagrafica
+Pipeline --> Main : tank_info_df
+deactivate Pipeline
+
+Main -> Pipeline : new WineryPipeline([Transformer, HPC])
+Main -> Pipeline : run(sensors_df, log_to_wandb=True)
+activate Pipeline
+
+group Stadio 1 — Trasformazioni
+  Pipeline -> Transformer : analyze_data(df)
+  activate Transformer
+  Transformer -> Transformer : add_avg_ph_per_tank()
+  Transformer -> Transformer : add_num_readings_per_tank()
+  alt anagrafica cisterne disponibile
+    Transformer -> Transformer : add_num_readings_per_grape_variety()
+    note right : join + explode:\nuna riga per (lettura, vitigno)
+  else anagrafica assente
+    Transformer -> Transformer : log warning e salta lo stadio
+  end
+  Transformer -> Transformer : add_temperature_deviation()
+  Transformer --> Pipeline : DataFrame arricchito
+  deactivate Transformer
+end
+
+group Stadio 2 — Computazioni HPC
+  Pipeline -> HPC : analyze_data(df)
+  activate HPC
+  HPC -> HPC : filtra righe non valide\n(null, volume <= 0)
+  HPC -> HPC : partition_by("tank_id")
+  HPC -> Joblib : Parallel(prefer="threads")(tasks)
+  activate Joblib
+  loop per ogni cisterna (in parallelo)
+    Joblib -> Kernel : stress(pH, temp, quantity)
+    activate Kernel
+    Kernel --> Joblib : stress_score
+    deactivate Kernel
+  end
+  Joblib --> HPC : lista dei punteggi
+  deactivate Joblib
+  HPC -> HPC : join dei punteggi sul DataFrame
+  HPC --> Pipeline : DataFrame con stress_score
+  deactivate HPC
+end
+
+group Logging delle metriche
+  Pipeline -> Wandb : init(project)
+  loop per ogni cisterna
+    Pipeline -> Wandb : log({tank_id, stress_score})
+  end
+  Pipeline -> Wandb : log(medie e aggregati)
+  Pipeline -> Wandb : finish()
+  note right : eventuali errori di W&B\nvengono registrati ma non\ninterrompono la pipeline
+end
+
+Pipeline --> Main : DataFrame finale
+deactivate Pipeline
+
+Main -> FS : write_csv(results.csv)
+Main --> User : DataFrame finale + file dei risultati
+deactivate Main
+
+@enduml

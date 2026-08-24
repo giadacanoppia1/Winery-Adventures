@@ -1,0 +1,68 @@
+@startuml use_case_diagram
+' Funzionalità del sistema dal punto di vista degli utenti.
+' Render:  plantuml docs/uml/use_case_diagram.puml
+
+title Winery Adventures — Diagramma dei Casi d'Uso
+
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor "Enologo" as Enologo
+actor "Data Engineer" as Engineer
+actor "Sistema di sensori" as Sensors <<system>>
+actor "Weights & Biases" as Wandb <<system>>
+
+rectangle "Winery Adventures" {
+
+  usecase "Caricare i dati dei sensori" as UC1
+  usecase "Caricare l'anagrafica delle cisterne" as UC2
+  usecase "Analizzare lo stato di fermentazione" as UC3
+  usecase "Calcolare il pH medio per cisterna" as UC4
+  usecase "Contare le rilevazioni per cisterna" as UC5
+  usecase "Contare le rilevazioni per vitigno" as UC6
+  usecase "Calcolare la deviazione di temperatura" as UC7
+  usecase "Calcolare lo stress da fermentazione" as UC8
+  usecase "Individuare le cisterne a rischio" as UC9
+  usecase "Esportare i risultati in CSV" as UC10
+  usecase "Consultare le metriche su W&B" as UC11
+  usecase "Eseguire la pipeline da riga di comando" as UC12
+  usecase "Generare il report di performance" as UC13
+  usecase "Generare un dataset di prova" as UC14
+}
+
+Sensors --> UC1
+Enologo --> UC3
+Enologo --> UC9
+Enologo --> UC11
+Engineer --> UC12
+Engineer --> UC13
+Engineer --> UC14
+Engineer --> UC2
+
+UC3 ..> UC1 : <<include>>
+UC3 ..> UC4 : <<include>>
+UC3 ..> UC5 : <<include>>
+UC3 ..> UC7 : <<include>>
+UC3 ..> UC8 : <<include>>
+UC3 ..> UC6 : <<extend>>
+UC6 ..> UC2 : <<include>>
+UC9 ..> UC8 : <<include>>
+UC3 ..> UC10 : <<extend>>
+UC3 ..> UC11 : <<extend>>
+UC12 ..> UC3 : <<include>>
+UC11 --> Wandb
+
+note bottom of UC6
+  Estensione: eseguita solo se
+  l'anagrafica delle cisterne
+  è disponibile.
+end note
+
+note bottom of UC8
+  Formula O(n²) sulle coppie di
+  rilevazioni, risolta in O(n log n)
+  tramite fattorizzazione algebrica.
+end note
+
+@enduml
