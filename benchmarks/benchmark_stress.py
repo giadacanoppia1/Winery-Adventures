@@ -47,9 +47,7 @@ PYTHON_MAX_SIZE: int = 2_000
 QUADRATIC_MAX_SIZE: int = 20_000
 
 
-def make_arrays(
-    n: int, seed: int = 42
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def make_arrays(n: int, seed: int = 42) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Genera dati casuali per simulare i sensori."""
     rng = np.random.default_rng(seed)
     return (
@@ -59,9 +57,7 @@ def make_arrays(
     )
 
 
-def time_call(
-    func: Callable[..., float], *args, repeats: int = 5
-) -> float:
+def time_call(func: Callable[..., float], *args, repeats: int = 5) -> float:
     """Misura quanto tempo impiega una funzione a eseguirsi (mediana)."""
     samples = []
     for _ in range(repeats):
@@ -111,9 +107,7 @@ def benchmark_kernels(sizes: tuple[int, ...]) -> list[dict]:
         if n <= QUADRATIC_MAX_SIZE:
             reference = pairwise_stress_function(ph, temp, quantity)
             fast_value = fast_stress_function(ph, temp, quantity)
-            record["relative_error"] = abs(fast_value - reference) / max(
-                reference, 1e-12
-            )
+            record["relative_error"] = abs(fast_value - reference) / max(reference, 1e-12)
 
         records.append(record)
         print(f"  n={n:>7,} -> {json.dumps(record, default=float)}")
@@ -130,6 +124,7 @@ def get_rss_memory() -> float:
         # Su Windows tramite psutil (se installato)
         try:
             import psutil
+
             process = psutil.Process(os.getpid())
             return process.memory_info().rss / (1024 * 1024)
         except ImportError:
