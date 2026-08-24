@@ -1,11 +1,10 @@
-"""Formula di stress da fermentazione: quattro implementazioni equivalenti.
+"""Calcolo dello stress di fermentazione.
 
-stress = (1/n^2) * sum_i sum_j (|pH_i-pH_j| + 2|T_i-T_j|) * (500/q_i + 500/q_j)
-
-pairwise_stress_python        -> O(n^2), Python puro, oracolo di correttezza
-pairwise_stress_function      -> O(n^2), compilata JIT con Numba
-pairwise_stress_function_parallel -> come sopra, parallela con prange
-fast_stress_function          -> O(n log n), riscrittura algebrica, usata in produzione
+Contiene quattro implementazioni equivalenti con diverse ottimizzazioni:
+1. pairwise_stress_python: Python puro (lento, O(n^2)), utile solo per test.
+2. pairwise_stress_function: Ottimizzato con Numba JIT (O(n^2)).
+3. pairwise_stress_function_parallel: Come il precedente, ma parallelizzato.
+4. fast_stress_function: Riscrittura matematica super-veloce (O(n log n)).
 """
 
 from __future__ import annotations
@@ -38,7 +37,10 @@ TEMPERATURE_WEIGHT: float = 2.0
 def pairwise_stress_python(
     pH_vals: np.ndarray, temp_vals: np.ndarray, quantity_vals: np.ndarray
 ) -> float:
-    """Traduzione letterale della formula in Python puro. Solo per benchmark/test."""
+    """Implementazione base in Python puro.
+
+    Da usare solo per test e confronti.
+    """
     n = len(pH_vals)
     if n == 0:
         return 0.0
@@ -60,10 +62,10 @@ def pairwise_stress_python(
 def pairwise_stress_function(
     pH_vals: np.ndarray, temp_vals: np.ndarray, quantity_vals: np.ndarray
 ) -> float:
-    """Stessa formula di ``pairwise_stress_python``, compilata JIT con Numba.
+    """Versione ottimizzata con Numba.
 
-    nogil=True: rilascia il GIL, necessario per parallelizzare con thread joblib.
-    cache=True: evita di ricompilare a ogni avvio.
+    - nogil=True: permette l'uso del multithreading reale (ignora il GIL).
+    - cache=True: salva la funzione compilata per avvii successivi più rapidi.
     """
     n = pH_vals.shape[0]
     if n == 0:
@@ -71,7 +73,7 @@ def pairwise_stress_function(
 
     stress_sum = 0.0
     for i in range(n):
-        # 500/q_i calcolato una sola volta per riga, non n volte.
+        # Ottimizzazione: calcoliamo il termine costante per 'i' una volta sola
         inv_qi = VOLUME_CONSTANT / quantity_vals[i]
         ph_i = pH_vals[i]
         temp_i = temp_vals[i]
@@ -90,15 +92,16 @@ def pairwise_stress_function(
 def pairwise_stress_function_parallel(
     pH_vals: np.ndarray, temp_vals: np.ndarray, quantity_vals: np.ndarray
 ) -> float:
-    """Come ``pairwise_stress_function``, con il ciclo esterno su prange.
+    """Versione parallela con Numba (tramite prange nel ciclo esterno).
 
-    Utile quando una singola cisterna ha moltissime rilevazioni.
+    Ideale quando si analizza una singola cisterna con una mole enorme di dati.
     """
     n = pH_vals.shape[0]
     if n == 0:
         return 0.0
 
     partial = np.zeros(n, dtype=np.float64)
+    # prange divide automaticamente il carico di lavoro tra i vari core della CPU
     for i in prange(n):
         inv_qi = VOLUME_CONSTANT / quantity_vals[i]
         ph_i = pH_vals[i]
@@ -115,24 +118,25 @@ def pairwise_stress_function_parallel(
 
 @njit(cache=True, nogil=True)
 def _sum_abs_differences(values: np.ndarray) -> np.ndarray:
-    """S[i] = somma_j |values[i] - values[j]|, in O(n log n) tramite somme prefisse.
+    """Calcola la somma delle differenze assolute in modo efficiente: O(n log n).
 
-    Su valori ordinati, per l'elemento in posizione k tutti i precedenti sono
-    minori e tutti i successivi maggiori: il valore assoluto si elimina e la
-    somma si riduce a differenze di somme prefisse.
+    Lo fa ordinando prima i valori e utilizzando la tecnica delle somme prefisse,
+    evitando così di dover calcolare la differenza per ogni singola coppia.
     """
     n = values.shape[0]
     result = np.zeros(n, dtype=np.float64)
     if n < 2:
         return result
 
+    # Ordiniamo gli elementi per poter applicare il metodo delle somme prefisse
     order = np.argsort(values)
-
     prefix = np.zeros(n + 1, dtype=np.float64)
+
     for k in range(n):
         prefix[k + 1] = prefix[k] + values[order[k]]
     total = prefix[n]
 
+    # Calcoliamo le differenze sfruttando l'ordinamento
     for k in range(n):
         x = values[order[k]]
         left = k * x - prefix[k]
@@ -146,15 +150,10 @@ def _sum_abs_differences(values: np.ndarray) -> np.ndarray:
 def fast_stress_function(
     pH_vals: np.ndarray, temp_vals: np.ndarray, quantity_vals: np.ndarray
 ) -> float:
-    """Formula di stress in O(n log n), algebricamente equivalente all'originale.
+    """Implementazione matematica ottimizzata (O(n log n)).
 
-    Con w_i = 500/q_i e D_ij = |pH_i-pH_j| + 2|T_i-T_j| (simmetrico in i, j):
-
-        sum_ij D_ij*(w_i+w_j) = 2 * sum_i w_i * (sum_j D_ij)
-
-    perché scambiando i nomi degli indici i due addendi coincidono. La somma
-    interna sum_j D_ij si ottiene da _sum_abs_differences in O(n log n)
-    invece di O(n).
+    Sfrutta le proprietà algebriche della formula originale per scomporre il
+    problema, appoggiandosi a _sum_abs_differences per eseguire il calcolo.
     """
     n = pH_vals.shape[0]
     if n == 0:
@@ -178,19 +177,21 @@ def _compute_tank_stress(
     use_fast_algorithm: bool,
     pairwise_threshold: int,
 ) -> float:
-    """Sceglie O(n^2) o O(n log n) in base alla numerosità della cisterna.
-
-    Funzione di modulo, non lambda: deve restare serializzabile da joblib.
-    """
+    """Sceglie dinamicamente l'algoritmo (O(n^2) o O(n log n))."""
     if not use_fast_algorithm or pH_vals.shape[0] <= pairwise_threshold:
         return pairwise_stress_function(pH_vals, temp_vals, quantity_vals)
     return fast_stress_function(pH_vals, temp_vals, quantity_vals)
 
 
 class WineryHPCComputations(BaseWineryAnalyzer):
-    """Calcola lo stress di ogni cisterna, in parallelo con joblib su thread."""
+    """Classe per orchestrare il calcolo dello stress in parallelo."""
 
-    REQUIRED_COLUMNS: tuple[str, ...] = ("tank_id", "pH", "temp", "quantity_liters")
+    REQUIRED_COLUMNS: tuple[str, ...] = (
+        "tank_id",
+        "pH",
+        "temp",
+        "quantity_liters",
+    )
     OUTPUT_COLUMN: str = "stress_score"
 
     def __init__(
@@ -199,31 +200,32 @@ class WineryHPCComputations(BaseWineryAnalyzer):
         use_fast_algorithm: bool = True,
         pairwise_threshold: int = 64,
     ) -> None:
-        """Configura numero di worker e strategia dell'algoritmo."""
+        """Configura le impostazioni dei worker e i criteri algoritmici."""
         self.n_jobs = n_jobs
         self.use_fast_algorithm = use_fast_algorithm
         self.pairwise_threshold = pairwise_threshold
 
     def analyze_data(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Aggiunge la colonna ``stress_score``, calcolata cisterna per cisterna.
+        """Calcola e aggiunge la colonna 'stress_score' per ogni cisterna.
 
-        Righe con pH/temp/volume nulli o volume <= 0 sono escluse dal calcolo
-        ma restano nel DataFrame. Cisterne senza rilevazioni valide ricevono
-        stress 0.0.
+        Ignora automaticamente le righe con dati non validi (nulli o volume <= 0).
         """
         missing = [column for column in self.REQUIRED_COLUMNS if column not in df.columns]
         if missing:
             raise ValueError(
-                "Impossibile calcolare lo stress di fermentazione: colonne "
-                f"mancanti {sorted(missing)}. Colonne disponibili: {df.columns}"
+                "Impossibile calcolare lo stress di fermentazione: "
+                f"colonne mancanti {sorted(missing)}. "
+                f"Colonne disponibili: {df.columns}"
             )
 
+        # 1. Filtriamo per mantenere solo i record validi
         valid = df.filter(
             pl.col("pH").is_not_null()
             & pl.col("temp").is_not_null()
             & pl.col("quantity_liters").is_not_null()
             & (pl.col("quantity_liters") > 0)
         )
+
         discarded = df.height - valid.height
         if discarded:
             logger.warning(
@@ -236,8 +238,7 @@ class WineryHPCComputations(BaseWineryAnalyzer):
         tank_ids: list[Any] = []
         tasks: list[tuple[Callable[..., float], tuple, dict]] = []
 
-        # Solo le colonne necessarie: partition_by restituisce array NumPy
-        # senza passare per liste Python.
+        # 2. Prepariamo i task suddividendo il DataFrame cisterna per cisterna
         for keys, group in (
             valid.select(self.REQUIRED_COLUMNS)
             .partition_by("tank_id", as_dict=True, maintain_order=True)
@@ -255,8 +256,11 @@ class WineryHPCComputations(BaseWineryAnalyzer):
             )
 
         logger.info("Calcolo dello stress su %d cisterne.", len(tasks))
+
+        # 3. Lanciamo l'elaborazione
         scores = self._execute(tasks)
 
+        # 4. Creiamo un nuovo DataFrame con i risultati ottenuti
         stress_df = pl.DataFrame(
             {
                 "tank_id": pl.Series(tank_ids, dtype=df.schema["tank_id"]),
@@ -264,12 +268,13 @@ class WineryHPCComputations(BaseWineryAnalyzer):
             }
         )
 
+        # 5. Effettuiamo una left join per riportare i risultati nell'originale
         return df.join(stress_df, on="tank_id", how="left").with_columns(
             pl.col(self.OUTPUT_COLUMN).fill_null(0.0)
         )
 
     def _execute(self, tasks: Sequence[tuple]) -> list[float]:
-        """Esegue i task con joblib su thread (i kernel Numba rilasciano il GIL)."""
+        """Esegue i task in parallelo tramite joblib e i thread Python."""
         if not tasks:
             return []
 
@@ -278,7 +283,7 @@ class WineryHPCComputations(BaseWineryAnalyzer):
         )(tasks)
 
         if results is None:
-            # Fallback sequenziale: lento ma non lascia la pipeline senza dati.
+            # Piano B: fallback sequenziale in caso di problemi col parallelismo
             logger.debug("Backend joblib senza risultati: fallback sequenziale.")
             results = [func(*args, **kwargs) for func, args, kwargs in tasks]
 
